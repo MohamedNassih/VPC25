@@ -27,7 +27,8 @@ run() {
     if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
         source .venv/Scripts/activate
     else
-        source .venv/bin/activate
+        source .venv/Scripts/activate
+
     fi
 
     # Ensure required packages are installed
