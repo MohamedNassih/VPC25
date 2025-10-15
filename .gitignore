@@ -1,37 +1,30 @@
-# Virtual environment
+@"
+# Environnements & caches
 .venv/
-
-# Python bytecode and cache
+.cache/
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+logs/
 
-# Logs and temporary files
-*.log
-*.tmp
-
-# OS-specific files
-.DS_Store
-Thumbs.db
-
-# Jupyter Notebook-related files
-.ipynb_checkpoints/
-*.ipynb~  # Temporary Jupyter Notebook files
-*.nbconvert  # Converted Jupyter outputs
-*.nb.html  # Exported notebook HTML files
-*.sav  # Jupyter auto-saved checkpoints
-
-# Audio files and results (except example.wav)
+# Données & artefacts locaux
 evaluation_data/
-
-# Evaluation results
 results.csv
 
-## speechbrain
+# Modèles/poids/artefacts lourds
 pretrained_models/
+parameters/bn_asr/
+parameters/spk_id/
+parameters/vocoder/
+parameters/pool/
 
-# Editor and IDE specific files
+# Fichiers lourds courants
+*.ckpt
+*.onnx
+*.npz
+*.wav
+*.flac
+
+# OS/IDE
+.DS_Store
+Thumbs.db
 .vscode/
-.idea/
-*.swp
+"@ | Add-Content .gitignore

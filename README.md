@@ -1,241 +1,215 @@
-# **Voice Privacy Challenge**
+# VPC25 — Voice Privacy Challenge Pipeline (Windows/Linux)
 
-Welcome to the **Voice Privacy Challenge**! Your task is to develop a model that anonymizes audio while preserving intelligibility and naturalness. This repository provides the necessary setup, evaluation script, and rules for participation.
+Ce dépôt contient un pipeline complet pour l’anonymisation de voix et l’évaluation locale en vue de participer à **VPC25**. Il s’appuie sur des embeddings **ECAPA (SpeechBrain)**, une sélection/synthèse contrôlée, et un post-traitement acoustique léger pour préserver l’intelligibilité tout en améliorant l’anonymat.
 
----
-
-## **📂 Repository Structure**
-
-```
-evaluation_data/       # Directory containing enrollment and trial audio data
-│── Enrollment/        # Speaker audio files for enrollment
-│   ├── speaker1/      # Directory for Speaker 1
-│   │   ├── 1272-128104-0000.wav  # Original enrollment utterance
-│   │   ├── ...
-│   │   └── anonymized/            # Anonymized versions of the above audio files (Will be automatically created based on your anonymization algorithm when the evaluation script is run)
-│   │       ├── anon_1272-128104-0000.wav
-│   │       ├── ...
-│   ├── speaker2/
-│   ├── speaker3/
-│   ├── speaker4/
-│   └── ...
-│
-│── Trial/             # Speaker audio files for testing (trial phase)
-│   ├── speaker1/
-│   │   ├── 1272-128104-0003.wav  # Trial utterances (different from enrollment)
-│   │   ├── ...
-│   │   └── anonymized/           # Anonymized versions of the above audio files (Will be automatically created based on your anonymization algorithm when the evaluation script is run)
-│   │       ├── anon_1272-128104-0003.wav
-│   │       ├── ...
-│   ├── speaker2/
-│   ├── speaker3/
-│   ├── speaker4/
-│   └── ...
-│
-parameters/            # Directory to store model parameters (participants should add their own)
-evaluation.py          # DO NOT MODIFY - Evaluates your model and generates results.csv
-model.py               # MODIFY - Implement your anonymization model here
-README.md              # This file - contains all competition instructions
-requirements.txt       # MODIFY - List your dependencies here
-run.sh                 # DO NOT MODIFY - Runs the evaluation script
-```
+> ✅ Cette version inclut des instructions **Windows-compatibles** (symlinks HF, FFmpeg, exécution via `python -m`) et un mode **CPU** (GPU fortement conseillé pour la vitesse).
 
 ---
 
-### **🗂 Understanding Enrollment and Trial Data**
+## 1) Prérequis
 
-In this challenge, participants work with **enrollment** and **trial** utterances, which follow a structure similar to speaker verification tasks.
+* **Python 3.10–3.12** (testé avec 3.12)
+* **ffmpeg/ffprobe** installés et accessibles dans le PATH
 
-- **Enrollment Utterances** (Stored in `Enrollment/`):
-  - These are speech recordings associated with a particular speaker.
-  - Each speaker has multiple enrollment utterances, which serve as reference data.
-  - The anonymization system must ensure that any transformed enrollment utterance still preserves the necessary speech characteristics, except for the speaker's identity.
-
-- **Trial Utterances** (Stored in `Trial/`):
-  - These are new speech recordings from the same speakers but contain different utterances.
-  - These utterances are anonymized and later compared against enrollment utterances.
-  - The anonymization system must ensure that the same speaker's trial utterances still match their anonymized enrollment utterances while preventing identification of the original speaker.
-
-### **🔑 Key Properties**
-- Each **speaker in Enrollment and Trial is the same**, meaning `speaker1` in `Enrollment/` is the same as `speaker1` in `Trial/`, but their audio files differ.
-- The anonymized versions of a speaker’s **trial utterances must match the anonymized version of their enrollment utterances**, maintaining consistency in the "pseudo-speaker" identity.
-- The anonymization system should **not alter linguistic content** but should make it impossible to link the anonymized voice back to the original speaker.
----
-## **🚀 Getting Started**
-
-### **1️⃣ Fork the Repository**
-
-Before cloning, you need to **fork** this repository to your own GitHub account. Follow these steps:
-
-1. Navigate to the repository on GitHub.
-2. In the top-right corner, click the **Fork** button.
-3. This creates a copy of the repository under your GitHub account.
+  * Windows (recommandé) : copiez aussi `ffmpeg.exe` et `ffprobe.exe` dans `.venv/Script[s]` (voir plus bas)
+* Optionnel mais recommandé : **GPU NVIDIA + CUDA** compatible avec votre PyTorch
 
 ---
 
-### **2️⃣ Clone Your Forked Repository**
+## 2) Installation rapide
 
-Once you've forked the repository, clone it to your local machine:
-
-```sh
-# Replace <YOUR_GITHUB_USERNAME> with your actual GitHub username
-git clone https://github.com/<YOUR_GITHUB_USERNAME>/VPC25.git
-cd VPC25
-```
-
-This ensures you're working on your own version of the repository while still being able to pull updates from the original source.
-
----
-
-### **3️⃣ Set Up Your Environment**
-
-This project requires **Python 3.12**. Ensure you have it installed before proceeding.
-
-#### **Check your Python version:**
-
-```sh
-python3 --version
-```
-
-or on Windows (PowerShell):
-
-```powershell
-python --version
-```
-
-If you don't have Python 3.12, download it from [python.org](https://www.python.org/downloads/).
-
-#### **Install FFmpeg (Required for Audio Processing)**
-
-To process audio files, **FFmpeg** must be installed. Follow these steps based on your system:
-
-##### **Linux**
-```sh
-sudo apt update && sudo apt install ffmpeg
-```
-
-##### **macOS**
-```sh
-brew install ffmpeg
-```
-
-##### **Windows**
-1. Download FFmpeg from [ffmpeg.org](https://ffmpeg.org/download.html) (recommended: Windows build from gyan.dev).
-2. Extract it to a folder (e.g., `C:\ffmpeg`).
-3. Add `C:\ffmpeg\bin` to your **system PATH** to make FFmpeg accessible from the command line.
-4. Verify installation by running:
-   ```sh
-   ffmpeg -version
-   ```
-
-#### **Create a Virtual Environment**
-
-These instructions should be followed inside the **`VPC25/`** folder exactly as written. Do not modify the command examples, including the virtual environment name.
-
-##### **Linux/macOS**
-
-```sh
-python3.12 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-##### **Windows (PowerShell)**
-
-```powershell
+```bash
+# Créer et activer un venv
 python -m venv .venv
-.venv\Scripts\Activate
+# Windows PowerShell
+.\.venv\Scripts\Activate.ps1
+# Linux/macOS
+source .venv/bin/activate
+
+# Dépendances
 pip install -r requirements.txt
 ```
 
-This ensures all dependencies are installed inside an isolated environment.
+### 2.1 Spécifique Windows (FFmpeg + stratégies locales SpeechBrain)
 
-#### **Activate the Virtual Environment Each Time You Work on the Project**
+Dans PowerShell **après activation du venv** :
 
-Each time you start working on the project, you should activate the virtual environment:
-
-##### **Linux/macOS**
-```sh
-source .venv/bin/activate
-```
-
-##### **Windows (PowerShell)**
 ```powershell
-.venv\Scripts\Activate
+# Rendez FFmpeg omniprésent
+Copy-Item "C:\ffmpeg\bin\ffmpeg.exe"  ".\.venv\Scripts\ffmpeg.exe"  -Force
+Copy-Item "C:\ffmpeg\bin\ffprobe.exe" ".\.venv\Scripts\ffprobe.exe" -Force
+
+# Variables d'environnement pour cette session
+$env:PATH = ".\.venv\Scripts;C:\ffmpeg\bin;$env:PATH"
+$env:FFMPEG_BINARY=".\.venv\Scripts\ffmpeg.exe"
+$env:FFPROBE_BINARY=".\.venv\Scripts\ffprobe.exe"
+$env:IMAGEIO_FFMPEG_EXE=".\.venv\Scripts\ffmpeg.exe"
+
+# Empêcher les symlinks lors des fetchs SpeechBrain/HF sous Windows
+$env:SPEECHBRAIN_LOCAL_DOWNLOAD_STRATEGY="copy"
+$env:SPEECHBRAIN_LOCAL_FILE_STRATEGY="copy"
+$env:HF_HUB_DISABLE_SYMLINKS_WARNING="1"
+
+# (Facultatif) Ponts utiles
+pip install --upgrade imageio imageio-ffmpeg
 ```
 
-For more details on virtual environments in Python, refer to:
-- [Python Virtual Environments Documentation](https://docs.python.org/3/tutorial/venv.html)
-- [Real Python Guide to Virtual Environments](https://realpython.com/python-virtual-environments-a-primer/)
-
 ---
 
-### **4️⃣ Implement Your Model**
+## 3) Données attendues
 
-- Modify **`model.py`** to implement your anonymization approach.
-- Store any necessary model parameters in the **`parameters/`** directory.
-- Add any additional dependencies to **`requirements.txt`**.
+Placez les jeux d’essai dans `evaluation_data/` :
 
-⚠️ **DO NOT modify**:
-
-- `evaluation.py`
-- `run.sh`
-
----
-
-### **5️⃣ Add Your Source Audio Files**
-
-- Place your test audio files inside **`evaluation_data/`**.
-- The evaluation script will process these files automatically.
-
----
-
-### **6️⃣ Run the Evaluation**
-
-To test your model, execute:
-
-```sh
-bash run.sh
+```
+evaluation_data/
+  Enrollment/
+    spk0001/*.wav
+    spk0002/*.wav
+    ...
+  Trial/
+    spk0001/*.wav
+    spk0002/*.wav
+    ...
 ```
 
-This will:
-
-1. Set up and activate the virtual environment (if not already done).
-2. Ensure dependencies are installed.
-3. Process the source audio.
-4. Generate anonymized audio files.
-5. Output evaluation results to **`results.csv`**.
-
-**Important:**
-- **Windows users** must use **Git Bash** to run this command, as PowerShell and Command Prompt do not support shell scripts properly.
-- **Windows and macOS users** might need to run `run.sh` with **administrator privileges** to avoid permission issues with symbolic links.
+* WAV mono, 16 kHz/16 bits recommandés (le pipeline resample si besoin).
 
 ---
 
-## **📊 Evaluation Metrics**
+## 4) Construction du pool d’x-vectors (ECAPA)
 
-The evaluation script will measure:
+Créez un dictionnaire d’enceintes anonymes (pool) depuis `Enrollment` :
 
-- **Equal Error Rate (EER):** This metric, derived from an Automatic Speaker Verification (ASV) system, measures the system's ability to differentiate between speech from the same speaker and different speakers. A higher EER indicates better privacy protection, as it means the system is less likely to correctly identify the speaker.
-- **Word Error Rate (WER):** This metric is calculated using an Automatic Speech Recognition (ASR) system and measures how well the anonymized speech preserves linguistic content. A lower WER indicates better utility, meaning the anonymized speech is still easily understood by the ASR system.
-- **Processing time:** Measure the effeciency of the anonymization algorithm.
+```powershell
+# Windows / CPU
+python -m scripts.build_xvector_pool `
+  --enroll-root evaluation_data/Enrollment `
+  --out parameters/pool/xvector_pool.npz `
+  --per-speaker-avg `
+  --max-files-per-speaker 10 `
+  --device cpu
+```
 
-Results are stored in **`results.csv`**.
+Options utiles :
+
+* `--device cuda` pour activer le GPU.
+* `--local-ckpt <dossier>` si vous avez téléchargé le modèle ECAPA en local via `huggingface_hub.snapshot_download`.
+
+### 4.1 (Windows, cas rare) Erreur de symlink HF
+
+Si vous rencontrez `WinError 1314` malgré les variables ci-dessus :
+
+1. Téléchargez localement le modèle ECAPA.
+
+   ```python
+   from huggingface_hub import snapshot_download
+   snapshot_download("speechbrain/spkrec-ecapa-voxceleb", local_dir="pretrained_models/spkrec-ecapa-voxceleb")
+   ```
+2. (Si nécessaire) Éditez `pretrained_models/spkrec-ecapa-voxceleb/hyperparams.yaml` et mettez `collect_in: null` dans la section `pretrainer:`.
+3. Copiez `label_encoder.txt` vers `label_encoder.ckpt` dans le même dossier.
+4. Relancez les scripts avec `--local-ckpt pretrained_models/spkrec-ecapa-voxceleb`.
 
 ---
 
-## **📜 Rules & Guidelines**
+## 5) Sanity-check local (petit sous-ensemble)
 
-✅ **You MUST:**
+Pour vérifier rapidement la chaîne :
 
-- Implement your model in `model.py`.
-- List dependencies in `requirements.txt`.
-- Store model parameters in `parameters/`.
-- Run evaluation using `run.sh`.
+```powershell
+python -m scripts.sanity_eval_local `
+  --root evaluation_data `
+  --split Trial `
+  --speakers 2 `
+  --files-per-speaker 2 `
+  --out evaluation_data/anonymized_local `
+  --csv logs/sanity_eval_local.csv `
+  --compute-ecapa-sim
+```
 
-❌ **You MUST NOT:**
+Vous obtiendrez quelques fichiers anonymisés + un CSV avec une similarité ECAPA moyenne (plus bas = meilleur anonymat).
 
-- Delete or modify `evaluation.py` or `run.sh`.
-- Remove or alter existing directories.
+---
 
-Good luck! 🚀🎧
+## 6) Évaluation complète
+
+```powershell
+# Windows
+python .\evaluation.py
+
+# Linux/macOS
+python evaluation.py
+```
+
+* Produit des WAV anonymisés et **results.csv** à la racine.
+* Sur CPU, l’exécution est plus lente — privilégiez `--device cuda` dans les scripts si vous avez un GPU.
+
+### 6.1 Paramétrage
+
+Le fichier **`parameters/config.yaml`** centralise les hyperparamètres (niveau d’anonymisation, post-traitement, etc.).
+
+* **`parameters/pseudo_map.json`** : mappage pseudonyme (si vous fixez des seeds/
+  correspondances stables entre runs).
+
+---
+
+## 7) Soumission (exemple)
+
+```powershell
+Compress-Archive -Path "evaluation_data\Anonymized\*" -DestinationPath "submission_anonymized.zip" -Force
+Copy-Item results.csv submission_results.csv -Force
+```
+
+Vérifiez le format attendu par la compétition et renommez si nécessaire.
+
+---
+
+## 8) Détails des modules
+
+* `utils/dsp.py` : primitives DSP (préaccentuation, filtres all-pass/warp, normalisation de loudness, etc.)
+* `utils/features.py` : extraction d’embeddings ECAPA (SpeechBrain) et traits acoustiques auxiliaires
+* `utils/selection.py` : sélection des cibles anonymes (pool d’x-vectors, stratégie de proximité/anti-proximité)
+* `utils/synth.py` : re-synthèse/warping de caractéristiques, génération anonymisée
+* `utils/postproc.py` : post-traitement (normalisation LUFS, fade, anti-click, dither optionnel)
+* `scripts/build_xvector_pool.py` : création du pool d’x-vectors
+* `scripts/sanity_eval_local.py` : smoke-test local sur un petit sous-ensemble
+* `model.py` : pipeline haut-niveau orchestrant extraction → anonymisation → post-proc
+
+> **Exécution recommandée des scripts** : `python -m scripts.<nom>` pour éviter les soucis d’import relatifs.
+
+---
+
+## 9) Bonnes pratiques & réglages
+
+* **Équilibre anonymat/qualité** : démarrez avec les valeurs par défaut de `config.yaml`, puis ajustez le degré de transformation (warp, ratio de sélection anti-proche) et la normalisation LUFS pour minimiser l’impact WER.
+* **Pool plus robuste** : augmentez `--max-files-per-speaker` et/ou diversifiez les speakers Enrollment.
+* **Déterminisme** : fixez `seed` dans `config.yaml` pour reproduire un run.
+
+---
+
+## 10) Dépannage
+
+* **`ffmpeg was not found`** :
+
+  * Confirmez `ffmpeg -version` dans le même shell.
+  * Sous Windows, copiez `ffmpeg.exe`/`ffprobe.exe` dans `.venv/Script[s]` et exportez les variables d’environnement ci-dessus.
+
+* **`WinError 1314` (symlink)** :
+
+  * Assurez `SPEECHBRAIN_LOCAL_*=copy` et `HF_HUB_DISABLE_SYMLINKS_WARNING=1`.
+  * Si persistant : mettez `collect_in: null` dans le `hyperparams.yaml` du modèle téléchargé localement et créez les fichiers cibles (ex. `label_encoder.ckpt`).
+
+* **`AttributeError: torchaudio.list_audio_backends`** :
+
+  * Utilisez une paire **torch/torchaudio** cohérente (ex. 2.9.0+cpu / 2.9.0+cpu). Réinstallez torchaudio si nécessaire.
+
+* **Lenteur CPU** :
+
+  * Passez au GPU (`--device cuda` dans les scripts) ou réduisez temporairement le nombre de fichiers/speakers pour tester.
+
+---
+
+## 11) Licence & crédits
+
+* Modèle ECAPA et utilitaires via **SpeechBrain**. Respectez leurs licences.
+* Données d’exemple : utilisez uniquement des jeux compatibles avec VPC25.
+* Ce dépôt vise la participation à VPC25 et n’est pas affilié officiellement aux organisateurs.
