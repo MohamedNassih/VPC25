@@ -1,0 +1,79 @@
+# VPC25 — Configuration globale du pipeline d’anonymisation
+version: 1
+
+audio:
+  sample_rate: 16000          # Taux standard VPC
+  mono: true                   # Tous les WAV doivent être mono
+  normalize: true              # Normalisation RMS/LUFS légère
+  target_lufs: -23.0           # Cible LUFS (approx.) si normalize=true
+  trim_silence: false          # Pas de trimming par défaut (éviter effets de bord)
+
+validation:
+  enforce_mono_sr: true        # Vérifier mono + SR avant traitement
+  allowed_sr: [16000]
+
+# Couche DSP — transformations légères, rapides et peu coûteuses en WER
+dsp:
+  pre_mcadams:
+    enabled: true              # Warping de formants (McAdams) en PRÉ-traitement
+    alpha_mode: per_speaker    # fixed|per_file|per_speaker
+    alpha_fixed: 0.80          # Utilisé si alpha_mode=fixed
+    alpha_min: 0.65            # Bornes si alpha aléatoire par locuteur
+    alpha_max: 0.90
+    lpc_order: auto            # auto ou entier (ex: 16)
+  post_pitch:
+    enabled: false             # Micro décalage de pitch en POST (±1–2 demi-tons max)
+    semitones: 1.0
+    random_sign: true          # Alterne +/− si enabled=true
+
+features:
+  use_bn: false                # BN/PPG non requis pour le plan minimal (peut être activé plus tard)
+  use_f0: true                 # F0 utile pour contrôles fins / diagnostics
+  bn_backend: kaldi            # kaldi|onnx|none
+  f0_backend: pyworld          # pyworld|none
+
+speaker:
+  extractor: ecapa             # ecapa|xvector (moderne: ECAPA‑TDNN)
+  device: cpu                 # cuda|cpu
+  local_ckpt: parameters/spk_id/ecapa.ckpt      # Poids locaux (si téléchargés)
+  hf_repo: speechbrain/spkrec-ecapa-voxceleb    # Fallback (si vous chargez depuis HF)
+  pool:
+    path: parameters/pool/xvector_pool.npz      # Matrice M×D d’x‑vectors de référence
+    build_if_missing: false     # true = autoriser scripts/build_xvector_pool.py à générer
+    distance: cosine            # cosine|plda (PLDA si backend dispo)
+    plda_model: null            # Chemin modèle PLDA (kaldi) si utilisé
+    topN: 200                   # N plus éloignés pour échantillonnage
+    sample_k: 100               # N* échantillonnés puis moyennés
+    rng_seed: 1337
+
+pseudo_identity:
+  mapping_file: parameters/pseudo_map.json  # Cohérence Enrollment↔Trial
+  persist: true                 # Sauvegarder après chaque anonymisation
+  store:
+    alpha: true
+    seed: true
+    xvector: true               # Conserver le pseudo‑xvector (liste float)
+
+synthesis:
+  enabled: false               # false = plan DSP‑centré ; true = activer vocoder/post‑enhance
+  backend: hifigan             # hifigan|nsf|none
+  enhance_only: true           # true = post‑amélioration (pas TTS complet)
+  local_ckpt: parameters/vocoder/hifigan_universal.ckpt
+  device: cpu
+  denoise: false
+
+evaluation:
+  batch_size: 1
+  workers: 2
+  save_intermediate: false     # Sauvegarder features intermédiaires (debug)
+  save_debug_wavs: false       # Écrire des WAV debug par étape (prend de la place)
+  time_budget_s: 0             # 0 = illimité (suivre temps quand même)
+
+logging:
+  level: INFO
+  log_dir: logs
+  write_experiments_csv: logs/experiments.csv
+
+reproducibility:
+  seed: 1337
+  deterministic_torch: true    # Torch deterministic si possible (légère perte de perf possible)

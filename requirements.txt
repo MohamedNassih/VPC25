@@ -1,8 +1,35 @@
-tqdm==4.67.1
-numpy==2.1.3
-pandas==2.2.3
-jiwer==3.1.0
-transformers==4.48.2
-torch==2.6.0
-speechbrain==1.0.2
-librosa==0.10.2.post1
+# Core ML / Speaker models
+torch
+# torchaudio must match torch — leaving unpinned lets pip resolve a compatible pair
+# For CUDA builds, install via the PyTorch index after first run if needed
+#   pip install --index-url https://download.pytorch.org/whl/cu121 torch torchaudio
+# (otherwise, CPU wheels will be used)
+torchaudio
+speechbrain
+
+# Audio / DSP
+librosa
+soundfile
+numpy
+scipy
+numba
+# High‑quality resampling
+soxr
+# F0 extraction (Harvest/WORLD)
+pyworld; platform_system != "Windows"
+pyworld-prebuilt; platform_system == "Windows"
+
+audioread
+pydub
+
+# Config / Utils
+PyYAML
+tqdm
+
+# (Optionnel) Back‑ends et I/O pour BN/PPG & ONNX
+kaldiio
+onnxruntime
+
+# (Optionnel) Post‑amélioration (vous chargerez les poids séparément dans parameters/)
+# Si vous utilisez un vocodeur HiFi‑GAN, vous appellerez son code depuis model.py/utils/synth.py
+# et placerez les poids dans parameters/vocoder/

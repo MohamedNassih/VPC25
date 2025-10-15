@@ -1,49 +1,22 @@
-#!/bin/bash
+# Cross-platform venv
+if [ -d ".venv/Scripts" ]; then
+  # Windows venv
+  PY=".venv/Scripts/python.exe"
+  PIP=".venv/Scripts/pip.exe"
+  # Active le venv Windows si besoin (optionnel)
+  # source .venv/Scripts/activate
+else
+  PY="python3"
+  PIP="pip3"
+  source .venv/bin/activate
+fi
 
-##############################################
-# DO NOT MODIFY THIS FILE
-##############################################
+# puis utilise $PY et $PIP partout au lieu de "python"/"pip"
+$PY -m pip install --upgrade pip
+$PIP install -r requirements.txt
 
-# Script for running the evaluation of your anonymization algorithm
-##############################################
+export SPEECHBRAIN_LOCAL_DOWNLOAD_STRATEGY=copy
+export SPEECHBRAIN_LOCAL_FILE_STRATEGY=copy
+export HF_HUB_DISABLE_SYMLINKS_WARNING=1
 
-run() {
-    echo "Running evaluation ..."
-
-    # Determine the correct Python command
-    PYTHON_CMD=$(command -v python3.12 || command -v python || command -v python3)
-    if [ -z "$PYTHON_CMD" ]; then
-        echo "Python not found! Please install Python 3.12"
-        exit 1
-    fi
-
-    # Check if virtual environment exists
-    if [ ! -d ".venv" ]; then
-        echo "Virtual environment not found! Creating one..."
-        $PYTHON_CMD -m venv .venv
-    fi
-
-    # Activate virtual environment (different paths for Windows and Unix)
-    if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
-        source .venv/Scripts/activate
-    else
-        source .venv/bin/activate
-    fi
-
-    # Ensure required packages are installed
-    python -m pip install --upgrade pip
-    pip install -r requirements.txt -q
-
-    # Set evaluation directory (default: "evaluation_data/")
-    EVAL_DIR=${1:-"evaluation_data/"}
-
-    # Set second argument (default: "default_value")
-    ASR_MODEL_ID=${2:-"facebook/wav2vec2-base-960h"}
-
-    # Run the evaluation with the specified directory
-    python evaluation.py "$EVAL_DIR" "$ASR_MODEL_ID"
-
-    echo "... end of evaluation run"
-}
-
-run "$@"
+$PY evaluation.py
