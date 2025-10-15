@@ -1,4 +1,4 @@
-# VPC25 — Voice Privacy Challenge Pipeline (Windows/Linux)
+# VPC25 — Voice Privacy Challenge
 
 Ce dépôt contient un pipeline complet pour l’anonymisation de voix et l’évaluation locale en vue de participer à **VPC25**. Il s’appuie sur des embeddings **ECAPA (SpeechBrain)**, une sélection/synthèse contrôlée, et un post-traitement acoustique léger pour préserver l’intelligibilité tout en améliorant l’anonymat.
 
@@ -206,10 +206,3 @@ Vérifiez le format attendu par la compétition et renommez si nécessaire.
 
   * Passez au GPU (`--device cuda` dans les scripts) ou réduisez temporairement le nombre de fichiers/speakers pour tester.
 
----
-
-## 11) Licence & crédits
-
-* Modèle ECAPA et utilitaires via **SpeechBrain**. Respectez leurs licences.
-* Données d’exemple : utilisez uniquement des jeux compatibles avec VPC25.
-* Ce dépôt vise la participation à VPC25 et n’est pas affilié officiellement aux organisateurs.
